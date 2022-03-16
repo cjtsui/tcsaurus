@@ -14,11 +14,22 @@ use std::string::String;
 // TODO main function non-async
 #[tokio::main]
 async fn main() {
-    let args: Vec<String> = env::args().collect();
-    let word = &args[1];
+
     let key = &dotenv::var("mw_api_key").unwrap();
-    let syns = thesaurus_request(word.as_str(), key.as_str()).await;
-    println!("{:?}", syns)
+
+    // let args: Vec<String> = env::args().collect();
+    // let word = &args[1];
+
+    // let syns = thesaurus_request(word.as_str(), key.as_str()).await;
+    // println!("{:?}", syns);
+
+    let test_words = vec!("good", "conduct", "he", "the", "happy", "merry", "example");
+
+    for word in test_words.iter() {
+        let _syns = thesaurus_request(word, key.as_str()).await;
+        println!("Testing {}... Passed!\n", word);
+    }
+
 }
 
 
@@ -65,7 +76,7 @@ pub type ThesaurusHeader = Vec<WelcomeElement>;
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WelcomeElement {
     // meta: Option<Meta>,
-    fl: Option<Fl>,
+    fl: Fl,
     def: Option<Vec<Def>>,
     // shortdef: Option<Vec<String>>,
     // vrs: Option<Vec<Vr>>,
@@ -81,12 +92,16 @@ pub enum Fl {
     Noun,
     #[serde(rename = "verb")]
     Verb,
+    #[serde(rename = "interjection")]
+    Interjection,
+    #[serde(rename = "phrase")]
+    Phrase,
 }
 
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Def {
-    sseq: Option<Vec<Vec<Vec<SseqElement>>>>,
+    sseq: Vec<Vec<Vec<SseqElement>>>,
 }
 
 
