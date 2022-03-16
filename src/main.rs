@@ -1,13 +1,14 @@
-use reqwest;
+use reqwest::{Client};
 use serde::{Deserialize, Serialize};
 use dotenv;
 
 use std::env;
 use std::string::String;
+
 // //! redefine the struct to get the actual synonyms
 
 
-//* https://app.quicktype.io/
+//* https://app.quicktype.io/ for strongly typed json data
 
 
 
@@ -20,12 +21,14 @@ async fn main() {
     let args: Vec<String> = env::args().collect();
     let testing = args[1] == "test";
     
+    let client = reqwest::Client::new();
+
     if testing {
 
         let test_words = vec!("good", "cargo", "conduct", "he", "the", "happy", "merry", "example");
 
         for word in test_words.iter() {
-            let _syns = thesaurus_request(word, key.as_str()).await;
+            let _syns = thesaurus_request(&client, word, key.as_str()).await;
             println!("Testing {}... Passed!\n", word);
         }
 
@@ -36,7 +39,7 @@ async fn main() {
         if command == "get" {
             let word = &args[2];
 
-            let syns = thesaurus_request(word.as_str(), key.as_str()).await;
+            let syns = thesaurus_request(&client, word.as_str(), key.as_str()).await;
             println!("{:?}", syns);
         }
 
@@ -47,7 +50,7 @@ async fn main() {
 
 
 // TODO function needs to return a result type, list of strings or error
-async fn thesaurus_request(word: &str, key: &str) -> Vec<WelcomeElement> {
+async fn thesaurus_request(client: &Client, word: &str, key: &str) -> Vec<WelcomeElement> {
 
     let url = format!(
         "https://www.dictionaryapi.com/api/v3/references/thesaurus/json/{word}?key={key}",
@@ -55,7 +58,6 @@ async fn thesaurus_request(word: &str, key: &str) -> Vec<WelcomeElement> {
         key = key,
     );
         
-    let client = reqwest::Client::new();
     let request = client
         .get(url)
         .send()
@@ -77,7 +79,7 @@ async fn thesaurus_request(word: &str, key: &str) -> Vec<WelcomeElement> {
             panic!("Token is invalid");
         }
         other => {
-            panic!("Error: {:?}", other);
+            panic!("Error, status code: {:?}", other);
         }
     };
 
@@ -93,6 +95,7 @@ pub struct WelcomeElement {
     // shortdef: Option<Vec<String>>,
     // vrs: Option<Vec<Vr>>,
 }
+
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Fl {
@@ -167,7 +170,6 @@ pub struct Word {
 pub struct DtClass {
     t: Option<String>,
 }
-
 
 
 
