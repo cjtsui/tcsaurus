@@ -17,17 +17,29 @@ async fn main() {
 
     let key = &dotenv::var("mw_api_key").unwrap();
 
-    // let args: Vec<String> = env::args().collect();
-    // let word = &args[1];
+    let args: Vec<String> = env::args().collect();
+    let testing = args[1] == "test";
+    
+    if testing {
 
-    // let syns = thesaurus_request(word.as_str(), key.as_str()).await;
-    // println!("{:?}", syns);
+        let test_words = vec!("good", "cargo", "conduct", "he", "the", "happy", "merry", "example");
 
-    let test_words = vec!("good", "conduct", "he", "the", "happy", "merry", "example");
+        for word in test_words.iter() {
+            let _syns = thesaurus_request(word, key.as_str()).await;
+            println!("Testing {}... Passed!\n", word);
+        }
 
-    for word in test_words.iter() {
-        let _syns = thesaurus_request(word, key.as_str()).await;
-        println!("Testing {}... Passed!\n", word);
+    } else {
+
+        let command = &args[1];
+
+        if command == "get" {
+            let word = &args[2];
+
+            let syns = thesaurus_request(word.as_str(), key.as_str()).await;
+            println!("{:?}", syns);
+        }
+
     }
 
 }
@@ -96,6 +108,8 @@ pub enum Fl {
     Interjection,
     #[serde(rename = "phrase")]
     Phrase,
+    #[serde(rename = "plural noun")]
+    PluralNoun,
 }
 
 
