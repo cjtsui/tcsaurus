@@ -2,6 +2,7 @@ use reqwest;
 use serde::{Deserialize, Serialize};
 use dotenv;
 
+use std::env;
 use std::string::String;
 // //! redefine the struct to get the actual synonyms
 
@@ -13,9 +14,10 @@ use std::string::String;
 // TODO main function non-async
 #[tokio::main]
 async fn main() {
-    let word = "conduct";
-    let key = dotenv::var("mw_api_key").unwrap();
-    let syns = thesaurus_request(word, key.as_str()).await;
+    let args: Vec<String> = env::args().collect();
+    let word = &args[1];
+    let key = &dotenv::var("mw_api_key").unwrap();
+    let syns = thesaurus_request(word.as_str(), key.as_str()).await;
     println!("{:?}", syns)
 }
 
@@ -68,6 +70,19 @@ pub struct WelcomeElement {
     // shortdef: Option<Vec<String>>,
     // vrs: Option<Vec<Vr>>,
 }
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum Fl {
+    #[serde(rename = "adjective")]
+    Adjective,
+    #[serde(rename = "adverb")]
+    Adverb,
+    #[serde(rename = "noun")]
+    Noun,
+    #[serde(rename = "verb")]
+    Verb,
+}
+
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Def {
@@ -125,23 +140,7 @@ pub struct DtClass {
 }
 
 
-#[derive(Debug, Serialize, Deserialize)]
-pub enum Fl {
-    #[serde(rename = "adjective")]
-    Adjective,
-    #[serde(rename = "adverb")]
-    Adverb,
-    #[serde(rename = "noun")]
-    Noun,
-    #[serde(rename = "verb")]
-    Verb,
-}
 
-#[derive(Debug, Serialize, Deserialize)]
-pub enum Section {
-    #[serde(rename = "alpha")]
-    Alpha,
-}
 
 
 
