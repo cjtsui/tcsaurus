@@ -10,13 +10,13 @@ async fn main() {
     let word = "conduct";
     let key = "eed63e22-8dc4-4ae7-8b7b-d9afc1816118";
     let syns = thesaurus_request(word, key).await;
-    println!("{:?}", syns)
+    // println!("{:?}", syns)
 }
 
 
 
 // TODO function needs to return a result type, list of strings or error
-async fn thesaurus_request(word: &str, key: &str) -> WelcomeElement {
+async fn thesaurus_request(word: &str, key: &str) -> Vec<WelcomeElement> {
 
     let url = format!(
         "https://www.dictionaryapi.com/api/v3/references/thesaurus/json/{word}?key={key}",
@@ -35,11 +35,10 @@ async fn thesaurus_request(word: &str, key: &str) -> WelcomeElement {
         reqwest::StatusCode::OK => {
             match request.json::<ThesaurusHeader>().await {
                 Ok(parsed) => {
-                    let obj = parsed.to_vec();
-                    return obj;
+                    return parsed;
                 },
                 Err(serde_err) => {
-                    panic!("Hm, the request didn't match the shape we expected: {:?}", serde_err);
+                    panic!("The request didn't match the shape expected: {:?}", serde_err);
                 },
             };
         }
