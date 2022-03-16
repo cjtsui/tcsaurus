@@ -1,16 +1,22 @@
 use reqwest;
 use serde::{Deserialize, Serialize};
+use dotenv;
 
-
+use std::string::String;
 // //! redefine the struct to get the actual synonyms
+
+
+//* https://app.quicktype.io/
+
+
 
 // TODO main function non-async
 #[tokio::main]
 async fn main() {
     let word = "conduct";
-    let key = "eed63e22-8dc4-4ae7-8b7b-d9afc1816118";
-    let syns = thesaurus_request(word, key).await;
-    // println!("{:?}", syns)
+    let key = dotenv::var("mw_api_key").unwrap();
+    let syns = thesaurus_request(word, key.as_str()).await;
+    println!("{:?}", syns)
 }
 
 
@@ -56,12 +62,11 @@ pub type ThesaurusHeader = Vec<WelcomeElement>;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct WelcomeElement {
-    meta: Option<Meta>,
-    hwi: Option<Hwi>,
+    // meta: Option<Meta>,
     fl: Option<Fl>,
     def: Option<Vec<Def>>,
-    shortdef: Option<Vec<String>>,
-    vrs: Option<Vec<Vr>>,
+    // shortdef: Option<Vec<String>>,
+    // vrs: Option<Vec<Vr>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -69,77 +74,7 @@ pub struct Def {
     sseq: Option<Vec<Vec<Vec<SseqElement>>>>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct SseqClass {
-    sn: Option<String>,
-    dt: Option<Vec<Vec<DtUnion>>>,
-    syn_list: Option<Vec<Vec<List>>>,
-    rel_list: Option<Vec<Vec<List>>>,
-    near_list: Option<Vec<Vec<List>>>,
-    ant_list: Option<Vec<Vec<List>>>,
-    phrase_list: Option<Vec<Vec<PhraseList>>>,
-    ins: Option<Vec<In>>,
-}
 
-#[derive(Debug, Serialize, Deserialize)]
-pub struct List {
-    wd: Option<String>,
-    wsls: Option<Vec<String>>,
-    wvrs: Option<Vec<Wvr>>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Wvr {
-    wvl: Option<Vl>,
-    wva: Option<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct DtClass {
-    t: Option<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct In {
-    #[serde(rename = "if")]
-    in_if: Option<String>,
-    spl: Option<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct PhraseList {
-    wd: Option<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Hwi {
-    hw: Option<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Meta {
-    id: Option<String>,
-    uuid: Option<String>,
-    src: Option<Src>,
-    section: Option<Section>,
-    target: Option<Target>,
-    stems: Option<Vec<String>>,
-    syns: Option<Vec<Vec<String>>>,
-    ants: Option<Vec<Vec<String>>>,
-    offensive: Option<bool>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Target {
-    tuuid: Option<String>,
-    tsrc: Option<String>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Vr {
-    vl: Option<Vl>,
-    va: Option<String>,
-}
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -148,6 +83,27 @@ pub enum SseqElement {
     SseqClass(SseqClass),
 }
 
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum SseqEnum {
+    #[serde(rename = "sense")]
+    Sense,
+}
+
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct SseqClass {
+    sn: Option<String>,
+    dt: Option<Vec<Vec<DtUnion>>>, // //! something wrong here
+    syn_list: Option<Vec<Vec<Word>>>,
+    rel_list: Option<Vec<Vec<Word>>>,
+    near_list: Option<Vec<Vec<Word>>>,
+    // ant_list: Option<Vec<Vec<List>>>,
+    // phrase_list: Option<Vec<Vec<PhraseList>>>,
+    // ins: Option<Vec<In>>,
+}
+
+
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum DtUnion {
@@ -155,19 +111,19 @@ pub enum DtUnion {
     String(String),
 }
 
+
 #[derive(Debug, Serialize, Deserialize)]
-pub enum Vl {
-    #[serde(rename = "also")]
-    Also,
-    #[serde(rename = "or")]
-    Or,
+pub struct Word {
+    wd: Option<String>,
+    // wsls: Option<Vec<String>>,
+    // wvrs: Option<Vec<Wvr>>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-pub enum SseqEnum {
-    #[serde(rename = "sense")]
-    Sense,
+pub struct DtClass {
+    t: Option<String>,
 }
+
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Fl {
@@ -177,18 +133,14 @@ pub enum Fl {
     Adverb,
     #[serde(rename = "noun")]
     Noun,
+    #[serde(rename = "verb")]
+    Verb,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 pub enum Section {
     #[serde(rename = "alpha")]
     Alpha,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub enum Src {
-    #[serde(rename = "coll_thes")]
-    CollThes,
 }
 
 
@@ -214,3 +166,102 @@ println!("{:#?}", cards);
 
 */
 
+
+/*
+use serde::{Deserialize, Serialize};
+
+pub type Welcome = Vec<WelcomeElement>;
+
+#[derive(Serialize, Deserialize)]
+pub struct WelcomeElement {
+    meta: Meta,
+    hwi: Hwi,
+    fl: String,
+    def: Vec<Def>,
+    shortdef: Vec<String>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct Def {
+    sseq: Vec<Vec<Vec<SseqElement>>>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct SseqClass {
+    sn: String,
+    dt: Vec<Vec<DtUnion>>,
+    syn_list: Vec<Vec<SynList>>,
+    rel_list: Vec<Vec<RelList>>,
+    phrase_list: Option<Vec<Vec<List>>>,
+    near_list: Option<Vec<Vec<List>>>,
+    ant_list: Option<Vec<Vec<List>>>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct List {
+    wd: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct DtClass {
+    t: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct RelList {
+    wd: String,
+    wvrs: Option<Vec<Wvr>>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct Wvr {
+    wvl: String,
+    wva: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct SynList {
+    wd: String,
+    wvrs: Option<Vec<Wvr>>,
+    wsls: Option<Vec<String>>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct Hwi {
+    hw: String,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct Meta {
+    id: String,
+    uuid: String,
+    src: String,
+    section: String,
+    target: Target,
+    stems: Vec<String>,
+    syns: Vec<Vec<String>>,
+    ants: Vec<Vec<String>>,
+    offensive: bool,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct Target {
+    tuuid: String,
+    tsrc: String,
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum SseqElement {
+    SseqClass(SseqClass),
+    String(String),
+}
+
+#[derive(Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum DtUnion {
+    DtClassArray(Vec<DtClass>),
+    String(String),
+}
+
+*/
