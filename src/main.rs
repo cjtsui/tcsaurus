@@ -58,7 +58,6 @@ async fn main() {
             println!("Response:\n {:?}", syns); //syns is an array of meanings
             
 
-
         }
 
     }
