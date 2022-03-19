@@ -41,7 +41,7 @@ impl Config {
 
 pub async fn run_tests(client: &Client, key: &String) {
 
-    let test_words = vec!("good", "cargo", "conduct", "he", "the", "happy", "merry", "example");
+    let test_words = vec!("good", "cargo", "conduct", "he", "the", "happy", "merry", "example", "establishment");
 
     for word in test_words.iter() {
         
@@ -62,7 +62,7 @@ pub async fn run_tests(client: &Client, key: &String) {
 
 
 // TODO function needs to return a result type, list of strings or error
-pub async fn thesaurus_request(client: &Client, word: &str, key: &str) -> Result<Vec<WelcomeElement>, String> {
+pub async fn thesaurus_request(client: &Client, word: &str, key: &str) -> Result<Vec<ThesaurusHeader>, String> {
 
     let url = format!(
         "https://www.dictionaryapi.com/api/v3/references/thesaurus/json/{word}?key={key}",
@@ -81,7 +81,7 @@ pub async fn thesaurus_request(client: &Client, word: &str, key: &str) -> Result
 
     match request.status() {
         reqwest::StatusCode::OK => {
-            match request.json::<ThesaurusHeader>().await {
+            match request.json::<ThesaurusResponse>().await {
                 Ok(parsed) => {
                     return Ok(parsed);
                 },
@@ -101,20 +101,50 @@ pub async fn thesaurus_request(client: &Client, word: &str, key: &str) -> Result
 }
 
 
+fn extract_definition(response: ThesaurusHeader) -> Synonym {
 
-pub type ThesaurusHeader = Vec<WelcomeElement>;
+    let word_type = response.fl.clone();
+    let defs = response.def;
+
+    let syn_definitions = Vec::new();
+
+    for def in defs.iter() {
+        let sseq = &def.sseq;
+    }
+
+    return Synonym {
+        word_type,
+        definitions: syn_definitions,
+    };
+
+}
+
+struct Synonym {
+    word_type: Fl,
+    definitions: Vec<Definition>,
+}
+
+
+struct Definition {
+    index: u8,
+    definition: String
+}
+
+
+
+pub type ThesaurusResponse = Vec<ThesaurusHeader>;
 
 #[derive(Debug, Serialize, Deserialize)]
-pub struct WelcomeElement {
+pub struct ThesaurusHeader {
     // meta: Option<Meta>,
     fl: Fl,
-    def: Option<Vec<Def>>,
+    def: Vec<Def>,
     // shortdef: Option<Vec<String>>,
     // vrs: Option<Vec<Vr>>,
 }
 
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Copy, Clone)]
 pub enum Fl {
     #[serde(rename = "adjective")]
     Adjective,
@@ -143,8 +173,8 @@ pub struct Def {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(untagged)]
 pub enum SseqElement {
-    Enum(SseqEnum),
-    SseqClass(SseqClass),
+    Sense(SseqEnum),
+    SseqClassEnum(SseqClass),
 }
 
 
@@ -164,7 +194,6 @@ pub struct SseqClass {
     // near_list: Option<Vec<Vec<Word>>>,
     // ant_list: Option<Vec<Vec<List>>>,
     // phrase_list: Option<Vec<Vec<PhraseList>>>,
-    // ins: Option<Vec<In>>,
 }
 
 

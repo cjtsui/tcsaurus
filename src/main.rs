@@ -32,7 +32,7 @@ async fn main() {
             process::exit(1);
     });
     
-    println!("Testing mode? {}\n", config.testing);
+    println!("\n\nTesting mode? {}\n", config.testing);
     
     if !config.testing {
         println!("Command: {}", config.command);
@@ -48,16 +48,22 @@ async fn main() {
     } else {
 
         if config.command == "get" {
-            let syns = tscaurus::thesaurus_request(&client, config.query.as_str(), key.as_str()).await;
-            println!("Response structure:\n {:?}", syns);
+            let syns =
+                tscaurus::thesaurus_request(&client, config.query.as_str(), key.as_str())
+                    .await
+                    .unwrap_or_else(| err | {
+                        println!("Something went wrong with the request: {}", err);
+                        process::exit(1);
+                    });
+            println!("Response:\n {:?}", syns); //syns is an array of meanings
+            
+
+
         }
 
     }
 
 }
-
-
-
 
 
 
