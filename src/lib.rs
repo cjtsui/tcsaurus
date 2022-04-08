@@ -4,6 +4,11 @@ use serde::{Deserialize, Serialize};
 use std::string::String;
 use std::process;
 
+use serde_json::Value as JsonValue;
+use jsonpath_rust::JsonPathQuery;
+
+
+
 pub struct Config {
     pub testing: bool, // if true then run tests, if false then normal
     pub command: String,
@@ -44,25 +49,16 @@ pub async fn run_tests(client: &Client, key: &String) {
     let test_words = vec!("good", "cargo", "conduct", "he", "the", "happy", "merry", "example", "establishment");
 
     for word in test_words.iter() {
-        
         println!("Testing {}...", word);
-
-        thesaurus_request(client, word, key.as_str()).await
-            .unwrap_or_else(| err | {
-                println!("Something went wrong with the API request: {}", err);
-                process::exit(1);
-            });
-
+        thesaurus_request(client, word, key.as_str()).await;
         println!("Passed!\n");
-        
     }
 
 }
 
 
 
-// TODO function needs to return a result type, list of strings or error
-pub async fn thesaurus_request(client: &Client, word: &str, key: &str) -> Result<Vec<ThesaurusHeader>, String> {
+pub async fn thesaurus_request(client: &Client, word: &str, key: &str)  {
 
     let url = format!(
         "https://www.dictionaryapi.com/api/v3/references/thesaurus/json/{word}?key={key}",
@@ -70,274 +66,28 @@ pub async fn thesaurus_request(client: &Client, word: &str, key: &str) -> Result
         key = key,
     );
         
-    let request = client
+    let response: JsonValue = client
         .get(url)
         .send()
         .await
-        .unwrap_or_else(| err | {
-            println!("API error: {}", err);
-            process::exit(1); // change later
-        });
+        .unwrap()
+        .json()
+        .await
+        .unwrap();
 
-    match request.status() {
-        reqwest::StatusCode::OK => {
-            match request.json::<ThesaurusResponse>().await {
-                Ok(parsed) => {
-                    return Ok(parsed);
-                },
-                Err(serde_err) => {
-                    return Err(format!("The request didn't match the shape expected: {:?}", serde_err));
-                },
-            };
-        }
-        reqwest::StatusCode::UNAUTHORIZED => {
-            return Err("Token is invalid".to_string());
-        }
-        other => {
-            return Err(format!("Error, status code: {:?}", other));
-        }
-    };
+    let _definition_path = "$[*].def[*].sseq[*][0][1].dt[0][1]";
+    let syn_path = "$[*].def[*].sseq[*][0][1].syn_list[*][*].wd";
 
-}
-
-
-fn extract_definition(response: ThesaurusHeader) -> Synonym {
-
-    let word_type = response.fl.clone();
-    let defs = response.def;
-
-    let syn_definitions = Vec::new();
-
-    for def in defs.iter() {
-        let sseq = &def.sseq;
+    if let JsonValue::Array(vals) = response.path(syn_path).unwrap() {
+        let words: Vec<&str> =
+            vals.iter()
+                .map(| s | s.as_str().unwrap())
+                .collect();
+        println!("{:?}", words);
     }
-
-    return Synonym {
-        word_type,
-        definitions: syn_definitions,
-    };
-
+    
 }
 
-struct Synonym {
-    word_type: Fl,
-    definitions: Vec<Definition>,
-}
-
-
-struct Definition {
-    index: u8,
-    definition: String
-}
-
-
-
-pub type ThesaurusResponse = Vec<ThesaurusHeader>;
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct ThesaurusHeader {
-    // meta: Option<Meta>,
-    fl: Fl,
-    def: Vec<Def>,
-    // shortdef: Option<Vec<String>>,
-    // vrs: Option<Vec<Vr>>,
-}
-
-
-#[derive(Debug, Serialize, Deserialize, Copy, Clone)]
-pub enum Fl {
-    #[serde(rename = "adjective")]
-    Adjective,
-    #[serde(rename = "adverb")]
-    Adverb,
-    #[serde(rename = "noun")]
-    Noun,
-    #[serde(rename = "verb")]
-    Verb,
-    #[serde(rename = "interjection")]
-    Interjection,
-    #[serde(rename = "phrase")]
-    Phrase,
-    #[serde(rename = "plural noun")]
-    PluralNoun,
-}
-
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Def {
-    sseq: Vec<Vec<Vec<SseqElement>>>,
-}
-
-
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum SseqElement {
-    Sense(SseqEnum),
-    SseqClassEnum(SseqClass),
-}
-
-
-#[derive(Debug, Serialize, Deserialize)]
-pub enum SseqEnum {
-    #[serde(rename = "sense")]
-    Sense,
-}
-
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct SseqClass {
-    sn: Option<String>,
-    dt: Option<Vec<Vec<DtUnion>>>, // //! something wrong here
-    // syn_list: Option<Vec<Vec<Word>>>,
-    // rel_list: Option<Vec<Vec<Word>>>,
-    // near_list: Option<Vec<Vec<Word>>>,
-    // ant_list: Option<Vec<Vec<List>>>,
-    // phrase_list: Option<Vec<Vec<PhraseList>>>,
-}
-
-
-#[derive(Debug, Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum DtUnion {
-    DtClassArray(Vec<DtClass>),
-    String(String),
-}
-
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct Word {
-    wd: Option<String>,
-    // wsls: Option<Vec<String>>,
-    // wvrs: Option<Vec<Wvr>>,
-}
-
-#[derive(Debug, Serialize, Deserialize)]
-pub struct DtClass {
-    // t: Option<String>,
-}
-
-
-
-/*
-#[derive(Serialize, Deserialize, Debug)]
-struct CardInformation {
-    balance: i32,
-    description: String,
-    id: u32,
-    pubkey: String
-}
-
-let cards = self.client.get(format!("http://localhost:4000/api/users/{}/cards", &self.credentials.username))
-    .header("Accept", "application/json")
-    .basic_auth(&self.credentials.username, Some(&self.credentials.password))
-    .send()?
-    .json::<Vec<CardInformation>>()?;
-
-println!("{:#?}", cards);
-
-
-*/
-
-
-/*
-use serde::{Deserialize, Serialize};
-
-pub type Welcome = Vec<WelcomeElement>;
-
-#[derive(Serialize, Deserialize)]
-pub struct WelcomeElement {
-    meta: Meta,
-    hwi: Hwi,
-    fl: String,
-    def: Vec<Def>,
-    shortdef: Vec<String>,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct Def {
-    sseq: Vec<Vec<Vec<SseqElement>>>,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct SseqClass {
-    sn: String,
-    dt: Vec<Vec<DtUnion>>,
-    syn_list: Vec<Vec<SynList>>,
-    rel_list: Vec<Vec<RelList>>,
-    phrase_list: Option<Vec<Vec<List>>>,
-    near_list: Option<Vec<Vec<List>>>,
-    ant_list: Option<Vec<Vec<List>>>,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct List {
-    wd: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct DtClass {
-    t: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct RelList {
-    wd: String,
-    wvrs: Option<Vec<Wvr>>,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct Wvr {
-    wvl: String,
-    wva: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct SynList {
-    wd: String,
-    wvrs: Option<Vec<Wvr>>,
-    wsls: Option<Vec<String>>,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct Hwi {
-    hw: String,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct Meta {
-    id: String,
-    uuid: String,
-    src: String,
-    section: String,
-    target: Target,
-    stems: Vec<String>,
-    syns: Vec<Vec<String>>,
-    ants: Vec<Vec<String>>,
-    offensive: bool,
-}
-
-#[derive(Serialize, Deserialize)]
-pub struct Target {
-    tuuid: String,
-    tsrc: String,
-}
-
-#[derive(Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum SseqElement {
-    SseqClass(SseqClass),
-    String(String),
-}
-
-#[derive(Serialize, Deserialize)]
-#[serde(untagged)]
-pub enum DtUnion {
-    DtClassArray(Vec<DtClass>),
-    String(String),
-}
-
-*/
 
 
 

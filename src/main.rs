@@ -42,24 +42,12 @@ async fn main() {
     let client = reqwest::Client::new();
 
     if config.testing {
-
         tscaurus::run_tests(&client, key).await;
-
     } else {
-
         if config.command == "get" {
-            let syns =
-                tscaurus::thesaurus_request(&client, config.query.as_str(), key.as_str())
-                    .await
-                    .unwrap_or_else(| err | {
-                        println!("Something went wrong with the request: {}", err);
-                        process::exit(1);
-                    });
-            println!("Response:\n {:?}", syns); //syns is an array of meanings
-            
-
+            tscaurus::thesaurus_request(&client, config.query.as_str(), key.as_str())
+                .await;
         }
-
     }
 
 }
