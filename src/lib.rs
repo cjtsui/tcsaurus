@@ -58,7 +58,7 @@ pub async fn run_tests(client: &Client, key: &String) {
 
 
 
-pub async fn thesaurus_request(client: &Client, word: &str, key: &str)  {
+pub async fn thesaurus_request(client: &Client, word: &str, key: &str) -> Vec<String> {
 
     let url = format!(
         "https://www.dictionaryapi.com/api/v3/references/thesaurus/json/{word}?key={key}",
@@ -75,15 +75,19 @@ pub async fn thesaurus_request(client: &Client, word: &str, key: &str)  {
         .await
         .unwrap();
 
-    let _definition_path = "$[*].def[*].sseq[*][0][1].dt[0][1]";
+    // let _definition_path = "$[*].def[*].sseq[*][0][1].dt[0][1]";
     let syn_path = "$[*].def[*].sseq[*][0][1].syn_list[*][*].wd";
 
     if let JsonValue::Array(vals) = response.path(syn_path).unwrap() {
-        let words: Vec<&str> =
+        let words: Vec<String> =
             vals.iter()
-                .map(| s | s.as_str().unwrap())
+                .map(| s |
+                    s.as_str().unwrap().to_string()
+                )
                 .collect();
-        println!("{:?}", words);
+        return words;
+    } else {
+        panic!("Path did not lead to an Array");
     }
     
 }

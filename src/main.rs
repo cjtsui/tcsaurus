@@ -45,8 +45,9 @@ async fn main() {
         tscaurus::run_tests(&client, key).await;
     } else {
         if config.command == "get" {
-            tscaurus::thesaurus_request(&client, config.query.as_str(), key.as_str())
+            let synonyms = tscaurus::thesaurus_request(&client, config.query.as_str(), key.as_str())
                 .await;
+            println!("{:?}", synonyms);
         }
     }
 
